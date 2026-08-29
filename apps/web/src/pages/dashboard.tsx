@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet } from 'lucide-react';
-import type { Profile, Transaction, TransactionSummary, Vehicle } from '@kharcha/shared';
+import type { Profile, Transaction, TransactionSummary, Vehicle, VehicleExpense } from '@kharcha/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useDataRefresh } from '@/lib/data-refresh';
@@ -21,6 +21,7 @@ export function DashboardPage() {
   const year = new Date().getFullYear();
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [lastPetrol, setLastPetrol] = useState<VehicleExpense | null>(null);
   const [recent, setRecent] = useState<Transaction[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +40,17 @@ export function DashboardPage() {
       api<Vehicle[]>('/api/vehicles'),
       api<Transaction[]>('/api/transactions?sort=newest'),
       api<Profile>('/api/profile'),
+      api<{ lastPetrol: VehicleExpense | null }>(
+        `/api/vehicles/summary?tzOffsetMinutes=${tzOffsetMinutes()}`,
+      ).catch(() => ({ lastPetrol: null })),
     ])
-      .then(([s, v, txs, p]) => {
+      .then(([s, v, txs, p, vs]) => {
         if (cancelled) return;
         setSummary(s);
         setVehicles(v);
         setRecent(txs.slice(0, 5));
         setProfile(p);
+        setLastPetrol(vs.lastPetrol);
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load dashboard');
@@ -98,7 +103,7 @@ export function DashboardPage() {
         <div className="hidden md:block">
           <StatCard label="Total Balance" value={balance} hint="All accounts" icon={Wallet} tone="gold" />
         </div>
-        <VehicleKpi vehicles={vehicles} />
+        <VehicleKpi vehicles={vehicles} lastPetrol={lastPetrol} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:hidden">
