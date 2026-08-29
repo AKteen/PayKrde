@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install && npm run bundle:vercel --prefix apps/api",
-  "buildCommand": "npm run vercel-build --prefix apps/web",
+  "installCommand": "npm install",
+  "buildCommand": "node scripts/vercel-build.mjs",
   "outputDirectory": "apps/web/dist",
   "functions": {
     "api/index.js": { "includeFiles": "api/_app.cjs" },

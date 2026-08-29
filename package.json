@@ -9,7 +9,7 @@
     "dev:web": "npm run dev --prefix apps/web",
     "dev:api": "npm run dev --prefix apps/api",
     "build": "npm run build --prefix packages/shared && npm run build --prefix apps/web && npm run build --prefix apps/api",
-    "vercel-build": "npm run vercel-build --prefix apps/web"
+    "vercel-build": "node scripts/vercel-build.mjs"
   },
   "engines": {
     "node": ">=18"
