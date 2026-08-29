@@ -8,23 +8,19 @@ export function toNumber(value: string | number | null | undefined): number {
   return Number(value);
 }
 
-export function parseBody<T>(
-  schema: z.ZodType<T>,
+/** Validate `data` with Zod. On failure, send 400 and return undefined. */
+export function parseBody<S extends z.ZodTypeAny>(
+  res: Response,
+  schema: S,
   data: unknown,
-): { ok: true; data: T } | { ok: false; error: string; fields: Record<string, string> } {
+): z.output<S> | undefined {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {
     const { error, fields } = zodFieldErrors(parsed.error);
-    return { ok: false, error, fields };
+    res.status(400).json({ error, fields });
+    return undefined;
   }
-  return { ok: true, data: parsed.data };
-}
-
-export function sendParseError(
-  res: Response,
-  parsed: { ok: false; error: string; fields: Record<string, string> },
-) {
-  res.status(400).json({ error: parsed.error, fields: parsed.fields });
+  return parsed.data;
 }
 
 export function sendServerError(res: Response, _err?: { message?: string } | unknown) {

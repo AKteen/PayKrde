@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { BalanceAdjustSchema, type BalanceLog, type Profile } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
+import { parseBody, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
@@ -46,11 +46,8 @@ export async function getBalance(req: Request, res: Response) {
 }
 
 export async function adjust(req: Request, res: Response) {
-  const parsed = parseBody(BalanceAdjustSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, BalanceAdjustSchema, req.body);
+  if (!parsed) return;
 
   const { error, profile } = await getOrCreateProfile(req.userId);
   if (error || !profile) {
@@ -58,9 +55,9 @@ export async function adjust(req: Request, res: Response) {
     return;
   }
 
-  const wallet = parsed.data.wallet ?? 'bank';
+  const wallet = parsed.wallet ?? 'bank';
   const current = wallet === 'cash' ? profile.cash_balance : profile.bank_balance;
-  const delta = Number(parsed.data.change_amount);
+  const delta = Number(parsed.change_amount);
   const balanceAfter = Number((current + delta).toFixed(2));
   const patch =
     wallet === 'cash' ? { cash_balance: balanceAfter } : { bank_balance: balanceAfter };
@@ -82,7 +79,7 @@ export async function adjust(req: Request, res: Response) {
     .insert({
       user_id: req.userId,
       change_amount: delta,
-      reason: parsed.data.reason ?? null,
+      reason: parsed.reason ?? null,
       balance_after: balanceAfter,
       wallet,
     })
@@ -95,7 +92,7 @@ export async function adjust(req: Request, res: Response) {
       .insert({
         user_id: req.userId,
         change_amount: delta,
-        reason: parsed.data.reason ?? null,
+        reason: parsed.reason ?? null,
         balance_after: balanceAfter,
       })
       .select('*')

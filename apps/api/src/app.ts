@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { requireAuth } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { globalLimiter, writeLimiter } from './middleware/rate-limit.js';
+import { isSupabaseConfigured } from './lib/supabase-admin.js';
 import { transactionsRouter } from './routes/transactions.js';
 import { balanceRouter } from './routes/balance.js';
 import { investmentsRouter } from './routes/investments.js';
@@ -69,7 +70,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, db: isSupabaseConfigured() });
 });
 
 app.use('/api/transactions', requireAuth, transactionsRouter);

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { InvestmentSchema, InvestmentUpdateSchema, type Investment } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
+import { parseBody, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapRow(row: Record<string, unknown>): Investment {
   return {
@@ -31,20 +31,17 @@ export async function list(req: Request, res: Response) {
 }
 
 export async function create(req: Request, res: Response) {
-  const parsed = parseBody(InvestmentSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, InvestmentSchema, req.body);
+  if (!parsed) return;
 
   const { data, error } = await supabaseAdmin
     .from('investments')
     .insert({
       user_id: req.userId,
-      name: parsed.data.name,
-      amount_invested: parsed.data.amount_invested,
-      current_value: parsed.data.current_value,
-      notes: parsed.data.notes ?? null,
+      name: parsed.name,
+      amount_invested: parsed.amount_invested,
+      current_value: parsed.current_value,
+      notes: parsed.notes ?? null,
     })
     .select('*')
     .single();
@@ -57,17 +54,14 @@ export async function create(req: Request, res: Response) {
 }
 
 export async function update(req: Request, res: Response) {
-  const parsed = parseBody(InvestmentUpdateSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, InvestmentUpdateSchema, req.body);
+  if (!parsed) return;
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (parsed.data.name !== undefined) patch.name = parsed.data.name;
-  if (parsed.data.amount_invested !== undefined) patch.amount_invested = parsed.data.amount_invested;
-  if (parsed.data.current_value !== undefined) patch.current_value = parsed.data.current_value;
-  if (parsed.data.notes !== undefined) patch.notes = parsed.data.notes ?? null;
+  if (parsed.name !== undefined) patch.name = parsed.name;
+  if (parsed.amount_invested !== undefined) patch.amount_invested = parsed.amount_invested;
+  if (parsed.current_value !== undefined) patch.current_value = parsed.current_value;
+  if (parsed.notes !== undefined) patch.notes = parsed.notes ?? null;
 
   const { data, error } = await supabaseAdmin
     .from('investments')

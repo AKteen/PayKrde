@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { ProfilePatchSchema, type Profile } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
+import { parseBody, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
@@ -34,15 +34,12 @@ export async function getProfile(req: Request, res: Response) {
 }
 
 export async function patchProfile(req: Request, res: Response) {
-  const parsed = parseBody(ProfilePatchSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, ProfilePatchSchema, req.body);
+  if (!parsed) return;
 
   const patch: Record<string, unknown> = {};
-  if (parsed.data.full_name !== undefined) patch.full_name = parsed.data.full_name;
-  if (parsed.data.date_of_birth !== undefined) patch.date_of_birth = parsed.data.date_of_birth;
+  if (parsed.full_name !== undefined) patch.full_name = parsed.full_name;
+  if (parsed.date_of_birth !== undefined) patch.date_of_birth = parsed.date_of_birth;
 
   const { data, error } = await supabaseAdmin
     .from('profiles')

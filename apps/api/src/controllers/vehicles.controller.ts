@@ -7,7 +7,7 @@ import {
   type VehicleExpense,
 } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { localBounds, parseBody, parseTzOffset, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
+import { localBounds, parseBody, parseTzOffset, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapVehicle(row: Record<string, unknown>): Vehicle {
   return {
@@ -49,20 +49,17 @@ export async function list(req: Request, res: Response) {
 }
 
 export async function create(req: Request, res: Response) {
-  const parsed = parseBody(VehicleSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, VehicleSchema, req.body);
+  if (!parsed) return;
 
   const { data, error } = await supabaseAdmin
     .from('vehicles')
     .insert({
       user_id: req.userId,
-      name: parsed.data.name,
-      kind: parsed.data.kind,
-      image_url: parsed.data.image_url ?? null,
-      number_plate: parsed.data.number_plate ?? null,
+      name: parsed.name,
+      kind: parsed.kind,
+      image_url: parsed.image_url ?? null,
+      number_plate: parsed.number_plate ?? null,
     })
     .select('*')
     .single();
@@ -75,17 +72,14 @@ export async function create(req: Request, res: Response) {
 }
 
 export async function update(req: Request, res: Response) {
-  const parsed = parseBody(VehicleUpdateSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, VehicleUpdateSchema, req.body);
+  if (!parsed) return;
 
   const patch: Record<string, unknown> = {};
-  if (parsed.data.name !== undefined) patch.name = parsed.data.name;
-  if (parsed.data.kind !== undefined) patch.kind = parsed.data.kind;
-  if (parsed.data.image_url !== undefined) patch.image_url = parsed.data.image_url;
-  if (parsed.data.number_plate !== undefined) patch.number_plate = parsed.data.number_plate;
+  if (parsed.name !== undefined) patch.name = parsed.name;
+  if (parsed.kind !== undefined) patch.kind = parsed.kind;
+  if (parsed.image_url !== undefined) patch.image_url = parsed.image_url;
+  if (parsed.number_plate !== undefined) patch.number_plate = parsed.number_plate;
 
   const { data, error } = await supabaseAdmin
     .from('vehicles')
@@ -144,11 +138,8 @@ export async function listExpenses(req: Request, res: Response) {
 }
 
 export async function addExpense(req: Request, res: Response) {
-  const parsed = parseBody(VehicleExpenseSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, VehicleExpenseSchema, req.body);
+  if (!parsed) return;
 
   const owned = await supabaseAdmin
     .from('vehicles')
@@ -171,10 +162,10 @@ export async function addExpense(req: Request, res: Response) {
     .insert({
       user_id: req.userId,
       vehicle_id: req.params.id,
-      amount: parsed.data.amount,
-      note: parsed.data.note ?? null,
-      tags: parsed.data.tags,
-      occurred_at: parsed.data.occurred_at,
+      amount: parsed.amount,
+      note: parsed.note ?? null,
+      tags: parsed.tags,
+      occurred_at: parsed.occurred_at,
     })
     .select('*')
     .single();

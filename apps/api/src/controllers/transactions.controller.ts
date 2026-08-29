@@ -20,7 +20,6 @@ import {
   localHour,
   parseBody,
   parseTzOffset,
-  sendParseError,
   sendServerError,
   toLocalDateKey,
   toNumber,
@@ -46,7 +45,7 @@ function firstQuery(value: unknown): string | undefined {
 }
 
 export async function list(req: Request, res: Response) {
-  const parsed = parseBody(TransactionListQuerySchema, {
+  const parsed = parseBody(res, TransactionListQuerySchema, {
     from: firstQuery(req.query.from),
     to: firstQuery(req.query.to),
     type: firstQuery(req.query.type),
@@ -57,12 +56,9 @@ export async function list(req: Request, res: Response) {
     maxAmount: firstQuery(req.query.maxAmount),
     q: firstQuery(req.query.q),
   });
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  if (!parsed) return;
 
-  const { from, to, type, tag, payment, sort, minAmount, maxAmount, q } = parsed.data;
+  const { from, to, type, tag, payment, sort, minAmount, maxAmount, q } = parsed;
   const ascending = sort === 'oldest';
   let query = supabaseAdmin.from('transactions').select('*').eq('user_id', req.userId);
 
@@ -272,17 +268,14 @@ export async function summary(req: Request, res: Response) {
 }
 
 export async function create(req: Request, res: Response) {
-  const parsed = parseBody(TransactionSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, TransactionSchema, req.body);
+  if (!parsed) return;
 
   const tzOffsetMinutes = parseTzOffset(req.body?.tzOffsetMinutes);
-  const tags = [...(parsed.data.tags ?? [])];
+  const tags = [...(parsed.tags ?? [])];
   const hasMeal = MEAL_TAGS.some((tag) => tags.includes(tag));
-  if (!hasMeal && parsed.data.type === 'spend') {
-    const meal = mealTagFromHour(localHour(parsed.data.occurred_at, tzOffsetMinutes));
+  if (!hasMeal && parsed.type === 'spend') {
+    const meal = mealTagFromHour(localHour(parsed.occurred_at, tzOffsetMinutes));
     if (meal) tags.push(meal);
   }
 
@@ -290,11 +283,11 @@ export async function create(req: Request, res: Response) {
     .from('transactions')
     .insert({
       user_id: req.userId,
-      amount: parsed.data.amount,
-      note: parsed.data.note ?? null,
-      type: parsed.data.type,
+      amount: parsed.amount,
+      note: parsed.note ?? null,
+      type: parsed.type,
       tags,
-      occurred_at: parsed.data.occurred_at,
+      occurred_at: parsed.occurred_at,
     })
     .select('*')
     .single();
@@ -307,18 +300,15 @@ export async function create(req: Request, res: Response) {
 }
 
 export async function update(req: Request, res: Response) {
-  const parsed = parseBody(TransactionUpdateSchema, req.body);
-  if (!parsed.ok) {
-    sendParseError(res, parsed);
-    return;
-  }
+  const parsed = parseBody(res, TransactionUpdateSchema, req.body);
+  if (!parsed) return;
 
   const patch: Record<string, unknown> = {};
-  if (parsed.data.amount !== undefined) patch.amount = parsed.data.amount;
-  if (parsed.data.note !== undefined) patch.note = parsed.data.note ?? null;
-  if (parsed.data.type !== undefined) patch.type = parsed.data.type;
-  if (parsed.data.tags !== undefined) patch.tags = parsed.data.tags;
-  if (parsed.data.occurred_at !== undefined) patch.occurred_at = parsed.data.occurred_at;
+  if (parsed.amount !== undefined) patch.amount = parsed.amount;
+  if (parsed.note !== undefined) patch.note = parsed.note ?? null;
+  if (parsed.type !== undefined) patch.type = parsed.type;
+  if (parsed.tags !== undefined) patch.tags = parsed.tags;
+  if (parsed.occurred_at !== undefined) patch.occurred_at = parsed.occurred_at;
 
   const { data, error } = await supabaseAdmin
     .from('transactions')
