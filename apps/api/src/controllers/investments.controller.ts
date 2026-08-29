@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { InvestmentSchema, InvestmentUpdateSchema, type Investment } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, toNumber } from '../lib/helpers.js';
+import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapRow(row: Record<string, unknown>): Investment {
   return {
@@ -20,10 +20,11 @@ export async function list(req: Request, res: Response) {
     .from('investments')
     .select('*')
     .eq('user_id', req.userId)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .limit(500);
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   res.json((data ?? []).map((row) => mapRow(row as Record<string, unknown>)));
@@ -32,7 +33,7 @@ export async function list(req: Request, res: Response) {
 export async function create(req: Request, res: Response) {
   const parsed = parseBody(InvestmentSchema, req.body);
   if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+    sendParseError(res, parsed);
     return;
   }
 
@@ -49,7 +50,7 @@ export async function create(req: Request, res: Response) {
     .single();
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   res.status(201).json(mapRow(data as Record<string, unknown>));
@@ -58,7 +59,7 @@ export async function create(req: Request, res: Response) {
 export async function update(req: Request, res: Response) {
   const parsed = parseBody(InvestmentUpdateSchema, req.body);
   if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+    sendParseError(res, parsed);
     return;
   }
 
@@ -77,7 +78,7 @@ export async function update(req: Request, res: Response) {
     .maybeSingle();
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   if (!data) {
@@ -97,7 +98,7 @@ export async function remove(req: Request, res: Response) {
     .maybeSingle();
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   if (!data) {

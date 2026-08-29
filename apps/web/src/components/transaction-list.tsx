@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { TAG_LABELS, TYPE_LABELS, type AllowedTag, type Transaction } from '@kharcha/shared';
+import { TYPE_LABELS, type Transaction } from '@kharcha/shared';
 import { api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
 import { formatInr } from '@/lib/utils';
 import { TransactionForm } from '@/components/transaction-form';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TagChip } from '@/lib/tag-meta';
 
 export function TransactionList({ items }: { items: Transaction[] }) {
   const { refresh } = useDataRefresh();
@@ -30,42 +30,56 @@ export function TransactionList({ items }: { items: Transaction[] }) {
 
   return (
     <>
-      <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
-        {items.map((tx) => (
-          <li key={tx.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-4">
-            <div className="flex min-w-0 flex-1 items-baseline gap-3">
-              <span className="tabular text-base font-medium">{formatInr(tx.amount)}</span>
-              <span className="truncate text-sm text-muted-foreground">{tx.note || '—'}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline">{TYPE_LABELS[tx.type]}</Badge>
-              {tx.tags.map((tag) => (
-                <Badge key={tag} variant="muted">
-                  {TAG_LABELS[tag as AllowedTag] ?? tag}
-                </Badge>
-              ))}
-            </div>
-            <time className="text-xs text-muted-foreground tabular">
-              {new Date(tx.occurred_at).toLocaleString()}
-            </time>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditing(tx)}>
-                Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={busyId === tx.id}
-                onClick={() => onDelete(tx)}
-              >
-                Delete
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-card">
+        <table className="w-full min-w-[720px] text-left text-sm">
+          <thead className="border-b border-border bg-muted/60 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3 font-medium">Date</th>
+              <th className="px-4 py-3 font-medium">Note</th>
+              <th className="px-4 py-3 font-medium">Type</th>
+              <th className="px-4 py-3 font-medium">Tags</th>
+              <th className="px-4 py-3 font-medium text-right">Amount</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((tx) => (
+              <tr key={tx.id} className="border-b border-border last:border-0">
+                <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular">
+                  {new Date(tx.occurred_at).toLocaleString()}
+                </td>
+                <td className="max-w-[16rem] truncate px-4 py-3">{tx.note || '—'}</td>
+                <td className="whitespace-nowrap px-4 py-3">{TYPE_LABELS[tx.type]}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {tx.tags.map((tag) => (
+                      <TagChip key={tag} tag={tag} />
+                    ))}
+                  </div>
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right tabular font-medium">
+                  {formatInr(tx.amount)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <Button variant="ghost" size="sm" onClick={() => setEditing(tx)}>
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busyId === tx.id}
+                    onClick={() => onDelete(tx)}
+                  >
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
+      <Dialog open={Boolean(editing)} onOpenChange={(open: boolean) => !open && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit transaction</DialogTitle>

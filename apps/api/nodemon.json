@@ -1,0 +1,9 @@
+{
+  "watch": ["src", "../../packages/shared/src"],
+  "ext": "ts,json",
+  "ignore": ["dist"],
+  "execMap": {
+    "ts": "tsx"
+  },
+  "exec": "tsx src/server.ts"
+}

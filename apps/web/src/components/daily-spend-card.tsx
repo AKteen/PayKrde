@@ -1,3 +1,4 @@
+import { BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatInr } from '@/lib/utils';
 
@@ -12,8 +13,9 @@ export function DailySpendCard({
 }) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Today’s spend</CardTitle>
+        <BarChart3 className="h-4 w-4 text-gold" />
       </CardHeader>
       <CardContent>
         <p className="tabular text-[32px] font-medium leading-none tracking-tight text-foreground">

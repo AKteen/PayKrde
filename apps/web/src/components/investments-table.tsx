@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { Investment } from '@kharcha/shared';
-import { api } from '@/lib/api';
+import { InvestmentSchema, zodFieldErrors, type FieldErrors } from '@kharcha/shared';
+import { ApiError, api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
-import { formatInr } from '@/lib/utils';
+import { formatInr, sanitizeAmountInput } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -21,27 +23,35 @@ function InvestmentFields({
   const [current, setCurrent] = useState(initial ? String(initial.current_value) : '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [fields, setFields] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const payload = {
-      name: name.trim(),
-      amount_invested: Number(invested),
-      current_value: Number(current),
+    setFields({});
+    const parsed = InvestmentSchema.safeParse({
+      name,
+      amount_invested: invested,
+      current_value: current,
       notes: notes || undefined,
-    };
+    });
+    if (!parsed.success) {
+      const issues = zodFieldErrors(parsed.error);
+      setFields(issues.fields);
+      setError(issues.error);
+      return;
+    }
     setSaving(true);
     try {
       if (initial) {
         await api(`/api/investments/${initial.id}`, {
           method: 'PATCH',
-          body: JSON.stringify(payload),
+          body: JSON.stringify(parsed.data),
         });
         onCancel?.();
       } else {
-        await api('/api/investments', { method: 'POST', body: JSON.stringify(payload) });
+        await api('/api/investments', { method: 'POST', body: JSON.stringify(parsed.data) });
         setName('');
         setInvested('');
         setCurrent('');
@@ -49,31 +59,59 @@ function InvestmentFields({
       }
       refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save');
+      if (err instanceof ApiError) {
+        setFields(err.fields);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Could not save');
+      }
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2" noValidate>
       <div className="sm:col-span-2">
         <Label htmlFor="inv-name">Name</Label>
-        <Input id="inv-name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <Input
+          id="inv-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          aria-invalid={Boolean(fields.name)}
+        />
+        <FieldError message={fields.name} />
       </div>
       <div>
         <Label htmlFor="inv-invested">Amount invested</Label>
-        <Input id="inv-invested" inputMode="decimal" value={invested} onChange={(e) => setInvested(e.target.value)} required />
+        <Input
+          id="inv-invested"
+          inputMode="decimal"
+          value={invested}
+          onChange={(e) => setInvested(sanitizeAmountInput(e.target.value))}
+          aria-invalid={Boolean(fields.amount_invested)}
+        />
+        <FieldError message={fields.amount_invested} />
       </div>
       <div>
         <Label htmlFor="inv-current">Current value</Label>
-        <Input id="inv-current" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} required />
+        <Input
+          id="inv-current"
+          inputMode="decimal"
+          value={current}
+          onChange={(e) => setCurrent(sanitizeAmountInput(e.target.value))}
+          aria-invalid={Boolean(fields.current_value)}
+        />
+        <FieldError message={fields.current_value} />
       </div>
       <div className="sm:col-span-2">
         <Label htmlFor="inv-notes">Notes</Label>
         <Input id="inv-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <FieldError message={fields.notes} />
       </div>
-      {error ? <p className="text-xs text-danger sm:col-span-2">{error}</p> : null}
+      {error && !fields.name && !fields.amount_invested && !fields.current_value ? (
+        <p className="text-xs text-danger sm:col-span-2">{error}</p>
+      ) : null}
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : initial ? 'Save' : 'Add investment'}
@@ -111,7 +149,7 @@ export function InvestmentsTable({
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No investments yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-xs text-muted-foreground">
               <tr>
@@ -154,7 +192,7 @@ export function InvestmentsTable({
         </div>
       )}
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
+      <Dialog open={Boolean(editing)} onOpenChange={(open: boolean) => !open && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit investment</DialogTitle>

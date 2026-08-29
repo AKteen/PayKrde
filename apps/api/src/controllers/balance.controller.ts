@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { BalanceAdjustSchema, type BalanceLog, type Profile } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, toNumber } from '../lib/helpers.js';
+import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
@@ -9,6 +9,7 @@ function mapProfile(row: Record<string, unknown>): Profile {
     full_name: (row.full_name as string | null) ?? null,
     date_of_birth: (row.date_of_birth as string | null) ?? null,
     bank_balance: toNumber(row.bank_balance as string | number),
+    cash_balance: toNumber(row.cash_balance as string | number),
     created_at: row.created_at as string,
   };
 }
@@ -20,6 +21,7 @@ function mapLog(row: Record<string, unknown>): BalanceLog {
     change_amount: toNumber(row.change_amount as string | number),
     reason: (row.reason as string | null) ?? null,
     balance_after: toNumber(row.balance_after as string | number),
+    wallet: row.wallet === 'cash' ? 'cash' : 'bank',
     created_at: row.created_at as string,
   };
 }
@@ -37,57 +39,77 @@ async function getOrCreateProfile(userId: string) {
 export async function getBalance(req: Request, res: Response) {
   const { error, profile } = await getOrCreateProfile(req.userId);
   if (error || !profile) {
-    res.status(500).json({ error: error?.message ?? 'Failed to load profile' });
+    sendServerError(res, error);
     return;
   }
-  res.json({ bank_balance: profile.bank_balance });
+  res.json({ bank_balance: profile.bank_balance, cash_balance: profile.cash_balance });
 }
 
 export async function adjust(req: Request, res: Response) {
   const parsed = parseBody(BalanceAdjustSchema, req.body);
   if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+    sendParseError(res, parsed);
     return;
   }
 
   const { error, profile } = await getOrCreateProfile(req.userId);
   if (error || !profile) {
-    res.status(500).json({ error: error?.message ?? 'Failed to load profile' });
+    sendServerError(res, error);
     return;
   }
 
-  const balanceAfter = Number((profile.bank_balance + parsed.data.change_amount).toFixed(2));
+  const wallet = parsed.data.wallet ?? 'bank';
+  const current = wallet === 'cash' ? profile.cash_balance : profile.bank_balance;
+  const delta = Number(parsed.data.change_amount);
+  const balanceAfter = Number((current + delta).toFixed(2));
+  const patch =
+    wallet === 'cash' ? { cash_balance: balanceAfter } : { bank_balance: balanceAfter };
 
   const updated = await supabaseAdmin
     .from('profiles')
-    .update({ bank_balance: balanceAfter })
+    .update(patch)
     .eq('id', req.userId)
     .select('*')
     .single();
 
   if (updated.error) {
-    res.status(500).json({ error: updated.error.message });
+    sendServerError(res, updated.error);
     return;
   }
 
-  const log = await supabaseAdmin
+  let log = await supabaseAdmin
     .from('balance_log')
     .insert({
       user_id: req.userId,
-      change_amount: parsed.data.change_amount,
+      change_amount: delta,
       reason: parsed.data.reason ?? null,
       balance_after: balanceAfter,
+      wallet,
     })
     .select('*')
     .single();
 
   if (log.error) {
-    res.status(500).json({ error: log.error.message });
+    log = await supabaseAdmin
+      .from('balance_log')
+      .insert({
+        user_id: req.userId,
+        change_amount: delta,
+        reason: parsed.data.reason ?? null,
+        balance_after: balanceAfter,
+      })
+      .select('*')
+      .single();
+  }
+
+  if (log.error) {
+    sendServerError(res, log.error);
     return;
   }
 
   res.json({
-    bank_balance: balanceAfter,
+    bank_balance: wallet === 'bank' ? balanceAfter : profile.bank_balance,
+    cash_balance: wallet === 'cash' ? balanceAfter : profile.cash_balance,
     log: mapLog(log.data as Record<string, unknown>),
   });
 }
@@ -97,10 +119,11 @@ export async function history(req: Request, res: Response) {
     .from('balance_log')
     .select('*')
     .eq('user_id', req.userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   res.json((data ?? []).map((row) => mapLog(row as Record<string, unknown>)));

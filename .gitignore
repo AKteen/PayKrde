@@ -9,3 +9,5 @@ dist/
 apps/web/dist/
 apps/api/dist/
 packages/shared/dist/
+
+.vercel

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { ProfilePatchSchema, type Profile } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
-import { parseBody, toNumber } from '../lib/helpers.js';
+import { parseBody, sendParseError, sendServerError, toNumber } from '../lib/helpers.js';
 
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
@@ -9,6 +9,7 @@ function mapProfile(row: Record<string, unknown>): Profile {
     full_name: (row.full_name as string | null) ?? null,
     date_of_birth: (row.date_of_birth as string | null) ?? null,
     bank_balance: toNumber(row.bank_balance as string | number),
+    cash_balance: toNumber(row.cash_balance as string | number),
     created_at: row.created_at as string,
   };
 }
@@ -16,7 +17,7 @@ function mapProfile(row: Record<string, unknown>): Profile {
 export async function getProfile(req: Request, res: Response) {
   const existing = await supabaseAdmin.from('profiles').select('*').eq('id', req.userId).maybeSingle();
   if (existing.error) {
-    res.status(500).json({ error: existing.error.message });
+    sendServerError(res, existing.error);
     return;
   }
   if (existing.data) {
@@ -26,7 +27,7 @@ export async function getProfile(req: Request, res: Response) {
 
   const created = await supabaseAdmin.from('profiles').insert({ id: req.userId }).select('*').single();
   if (created.error) {
-    res.status(500).json({ error: created.error.message });
+    sendServerError(res, created.error);
     return;
   }
   res.json(mapProfile(created.data as Record<string, unknown>));
@@ -35,7 +36,7 @@ export async function getProfile(req: Request, res: Response) {
 export async function patchProfile(req: Request, res: Response) {
   const parsed = parseBody(ProfilePatchSchema, req.body);
   if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+    sendParseError(res, parsed);
     return;
   }
 
@@ -51,7 +52,7 @@ export async function patchProfile(req: Request, res: Response) {
     .maybeSingle();
 
   if (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error);
     return;
   }
   if (!data) {
@@ -61,7 +62,7 @@ export async function patchProfile(req: Request, res: Response) {
       .select('*')
       .single();
     if (created.error) {
-      res.status(500).json({ error: created.error.message });
+      sendServerError(res, created.error);
       return;
     }
     res.json(mapProfile(created.data as Record<string, unknown>));

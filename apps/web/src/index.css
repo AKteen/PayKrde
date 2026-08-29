@@ -5,6 +5,7 @@
 @layer base {
   html {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -34,4 +35,46 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-in 0.4s ease-out;
+}
+
+.animate-in {
+  animation: page-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .animate-in {
+    animation: none;
+  }
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
 }
