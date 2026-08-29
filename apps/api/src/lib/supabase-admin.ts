@@ -3,12 +3,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-try {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  dotenv.config({ path: path.resolve(here, '../../../../.env') });
-  dotenv.config({ path: path.resolve(here, '../../../../.env.local') });
-} catch {
-  dotenv.config();
+if (!process.env.VERCEL) {
+  try {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    dotenv.config({ path: path.resolve(here, '../../../../.env') });
+    dotenv.config({ path: path.resolve(here, '../../../../.env.local') });
+  } catch {
+    dotenv.config();
+  }
 }
 
 function credentials() {

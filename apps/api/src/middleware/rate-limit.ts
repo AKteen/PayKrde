@@ -9,11 +9,16 @@ function jsonMessage(message: string) {
 }
 
 /** Broad cap so a single IP cannot hammer health + auth + reads. */
+const serverlessSafe = {
+  xForwardedForHeader: false,
+} as const;
+
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: isProd ? 300 : 2_000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: serverlessSafe,
   skip: (req) => req.path === '/health' || req.originalUrl === '/api/health',
   handler: jsonMessage('Too many requests, try again later'),
 });
@@ -24,6 +29,7 @@ export const writeLimiter = rateLimit({
   limit: isProd ? 80 : 1_000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: serverlessSafe,
   handler: jsonMessage('Too many changes, slow down a bit'),
 });
 
@@ -33,6 +39,7 @@ export const authFailLimiter = rateLimit({
   limit: isProd ? 40 : 400,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: serverlessSafe,
   skipSuccessfulRequests: true,
   handler: jsonMessage('Too many failed sign-in attempts'),
 });
