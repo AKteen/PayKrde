@@ -2,8 +2,12 @@
   "installCommand": "npm install && npm run bundle:vercel -w api",
   "buildCommand": "npm run vercel-build -w apps/web",
   "outputDirectory": "apps/web/dist",
+  "functions": {
+    "api/index.js": { "includeFiles": "api/_app.cjs" },
+    "api/[[...path]].js": { "includeFiles": "api/_app.cjs" }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }

@@ -19,10 +19,6 @@ const shared = {
   },
 };
 
-const outfiles = [
-  join(repoRoot, 'api', '[[...path]].js'),
-  join(repoRoot, 'api', 'index.js'),
-  join(apiRoot, 'api', 'index.js'),
-];
+const outfiles = [join(repoRoot, 'api', '_app.cjs'), join(apiRoot, 'api', '_app.cjs')];
 
 await Promise.all(outfiles.map((outfile) => build({ ...shared, outfile })));

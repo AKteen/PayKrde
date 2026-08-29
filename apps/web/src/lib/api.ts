@@ -27,16 +27,37 @@ async function authHeader(): Promise<HeadersInit> {
   };
 }
 
-async function parseError(res: Response): Promise<ApiError> {
+function isHtml(text: string, contentType: string | null) {
+  return contentType?.includes('text/html') || text.trimStart().startsWith('<');
+}
+
+async function readBody(res: Response): Promise<string> {
+  return res.text();
+}
+
+function parseJsonBody<T>(text: string, res: Response): T {
+  if (isHtml(text, res.headers.get('content-type'))) {
+    throw new ApiError('API is not available (got a web page instead of data).', {}, res.status);
+  }
   try {
-    const body = (await res.json()) as { error?: unknown; fields?: FieldErrors };
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(res.statusText || 'Request failed', {}, res.status);
+  }
+}
+
+async function parseError(res: Response): Promise<ApiError> {
+  const text = await readBody(res);
+  try {
+    const body = parseJsonBody<{ error?: unknown; fields?: FieldErrors }>(text, res);
     const fields = body.fields && typeof body.fields === 'object' ? body.fields : {};
     if (typeof body.error === 'string') return new ApiError(body.error, fields, res.status);
     if (body.error && typeof body.error === 'object') {
       return new ApiError('Please check the form and try again.', fields, res.status);
     }
     return new ApiError(res.statusText || 'Request failed', fields, res.status);
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError) return err;
     return new ApiError(res.statusText || 'Request failed', {}, res.status);
   }
 }
@@ -56,5 +77,5 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw await parseError(res);
   }
 
-  return (await res.json()) as T;
+  return parseJsonBody<T>(await readBody(res), res);
 }
