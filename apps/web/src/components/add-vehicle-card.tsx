@@ -37,16 +37,18 @@ export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehic
       setFields({ image_url: 'Choose an image file.' });
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setFields({ image_url: 'Image must be under 8 MB.' });
+    if (file.size > 4 * 1024 * 1024) {
+      setFields({ image_url: 'Image must be under 4 MB.' });
       return;
     }
     try {
       setImageUrl(await fileToDataUrl(file));
       setFields((prev) => ({ ...prev, image_url: '' }));
       setPickerOpen(false);
-    } catch {
-      setFields({ image_url: 'Could not read that image.' });
+    } catch (err) {
+      setFields({
+        image_url: err instanceof Error ? err.message : 'Could not read that image.',
+      });
     }
   }
 

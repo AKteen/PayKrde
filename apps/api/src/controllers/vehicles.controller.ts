@@ -52,23 +52,25 @@ export async function create(req: Request, res: Response) {
   const parsed = parseBody(res, VehicleSchema, req.body);
   if (!parsed) return;
 
-  const { data, error } = await supabaseAdmin
-    .from('vehicles')
-    .insert({
-      user_id: req.userId,
-      name: parsed.name,
-      kind: parsed.kind,
-      image_url: parsed.image_url ?? null,
-      number_plate: parsed.number_plate ?? null,
-    })
-    .select('*')
-    .single();
+  const row: Record<string, unknown> = {
+    user_id: req.userId,
+    name: parsed.name,
+    kind: parsed.kind,
+  };
+  if (parsed.image_url) row.image_url = parsed.image_url;
+  if (parsed.number_plate) row.number_plate = parsed.number_plate;
 
-  if (error) {
-    sendServerError(res, error);
+  let inserted = await supabaseAdmin.from('vehicles').insert(row).select('*').single();
+  if (inserted.error && parsed.number_plate && /number_plate/i.test(inserted.error.message ?? '')) {
+    delete row.number_plate;
+    inserted = await supabaseAdmin.from('vehicles').insert(row).select('*').single();
+  }
+
+  if (inserted.error) {
+    sendServerError(res, inserted.error);
     return;
   }
-  res.status(201).json(mapVehicle(data as Record<string, unknown>));
+  res.status(201).json(mapVehicle(inserted.data as Record<string, unknown>));
 }
 
 export async function update(req: Request, res: Response) {
