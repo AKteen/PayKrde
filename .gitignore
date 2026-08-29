@@ -8,6 +8,9 @@ dist/
 .vercel
 apps/web/dist/
 apps/api/dist/
+apps/api/api/index.js
 packages/shared/dist/
+api/index.js
+api/\[\[...path\]\].js
 
 .vercel

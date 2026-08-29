@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install",
+  "installCommand": "npm install && npm run bundle:vercel -w api",
   "buildCommand": "npm run vercel-build -w apps/web",
   "outputDirectory": "apps/web/dist",
   "rewrites": [

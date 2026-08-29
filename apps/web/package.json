@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "vercel-build": "npm run build --prefix ../../packages/shared && vite build"
+    "vercel-build": "npm run bundle:vercel --prefix ../../apps/api && npm run build --prefix ../../packages/shared && vite build"
   },
   "dependencies": {
     "@kharcha/shared": "*",
