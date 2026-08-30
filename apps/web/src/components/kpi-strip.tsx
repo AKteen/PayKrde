@@ -27,7 +27,7 @@ export function KpiStrip({ summary }: { summary: TransactionSummary }) {
             <GIcon name={item.icon} className="text-[14px]" />
             {item.label}
           </span>
-          <p className="mt-1 tabular text-sm font-semibold">{formatInr(item.value)}</p>
+          <p className="mt-1 tabular text-base font-semibold">{formatInr(item.value)}</p>
           <p className="text-[10px] text-muted-foreground">{item.hint}</p>
         </Link>
       ))}

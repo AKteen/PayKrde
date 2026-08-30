@@ -141,7 +141,7 @@ function HeroKpi({
         <GIcon name={icon} className="text-[14px]" />
         {label}
       </p>
-      <p className="mt-2 tabular text-lg font-semibold">{formatInr(value)}</p>
+      <p className="mt-2 tabular text-2xl font-semibold">{formatInr(value)}</p>
       {hint ? <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p> : null}
     </div>
   );

@@ -8,6 +8,7 @@ import {
 } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
 import { localBounds, parseBody, parseTzOffset, sendServerError, toNumber } from '../lib/helpers.js';
+import { applyWalletMoves } from '../lib/wallet.js';
 
 function mapVehicle(row: Record<string, unknown>): Vehicle {
   return {
@@ -176,6 +177,14 @@ export async function addExpense(req: Request, res: Response) {
     sendServerError(res, error);
     return;
   }
+
+  const walletRes = await applyWalletMoves(req.userId, [{ wallet: 'bank', delta: -parsed.amount }], parsed.note ?? 'Vehicle expense');
+  if (walletRes.error) {
+    await supabaseAdmin.from('vehicle_expenses').delete().eq('id', (data as { id: string }).id).eq('user_id', req.userId);
+    sendServerError(res, walletRes.error);
+    return;
+  }
+
   res.status(201).json(mapExpense(data as Record<string, unknown>));
 }
 

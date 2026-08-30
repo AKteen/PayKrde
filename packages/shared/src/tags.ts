@@ -27,14 +27,30 @@ export const CATEGORY_TAGS = [
 
 export const VEHICLE_TAGS = ['petrol', 'maintenance', 'accessories'] as const;
 
-export const PAYMENT_MODES = ['cash', 'upi', 'card'] as const;
+export const PAYMENT_MODES = ['online', 'cash', 'upi', 'card'] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
+export const DEFAULT_PAYMENT_MODE: PaymentMode = 'online';
 
 export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
+  online: 'Online',
   cash: 'Cash',
   upi: 'UPI',
   card: 'Card',
 };
+
+export function hasPaymentMode(tags: readonly string[] | null | undefined): boolean {
+  return Boolean(tags?.some((tag) => (PAYMENT_MODES as readonly string[]).includes(tag)));
+}
+
+/** Cash spends use cash in hand; anything else (online / UPI / card / unset) is bank. */
+export function walletFromTags(tags: readonly string[] | null | undefined): 'bank' | 'cash' {
+  return tags?.includes('cash') ? 'cash' : 'bank';
+}
+
+export function withDefaultPayment(tags: string[]): string[] {
+  if (hasPaymentMode(tags)) return tags;
+  return [...tags, DEFAULT_PAYMENT_MODE];
+}
 
 export const ALLOWED_TAGS = [
   ...MAJOR_TAGS,
@@ -82,6 +98,7 @@ export const TAG_LABELS: Record<string, string> = {
   stationary: 'Stationary',
   maintenance: 'Maintenance',
   accessories: 'Accessories',
+  online: 'Online',
   cash: 'Cash',
   upi: 'UPI',
   card: 'Card',

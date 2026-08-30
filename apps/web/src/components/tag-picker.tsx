@@ -36,7 +36,7 @@ export function TagPicker({ value, onChange, compact, mode = 'personal' }: TagPi
       </div>
       {mode === 'personal' ? (
         <>
-          <p className="text-[11px] font-medium text-muted-foreground">Paid with</p>
+          <p className="text-[11px] font-medium text-muted-foreground">Paid with · defaults to Online (bank)</p>
           <div className="no-scrollbar flex flex-nowrap gap-1.5 overflow-x-auto pb-1 md:flex-wrap">
             {PAYMENT_MODES.map((tag) => (
               <TagChip key={tag} tag={tag} selected={value.includes(tag)} onClick={() => toggle(tag)} />

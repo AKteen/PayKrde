@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { BalanceAdjustSchema, type BalanceLog, type Profile } from '@kharcha/shared';
 import { supabaseAdmin } from '../lib/supabase-admin.js';
 import { parseBody, sendServerError, toNumber } from '../lib/helpers.js';
+import { applyWalletDelta } from '../lib/wallet.js';
 
 function mapProfile(row: Record<string, unknown>): Profile {
   return {
@@ -49,65 +50,18 @@ export async function adjust(req: Request, res: Response) {
   const parsed = parseBody(res, BalanceAdjustSchema, req.body);
   if (!parsed) return;
 
-  const { error, profile } = await getOrCreateProfile(req.userId);
-  if (error || !profile) {
-    sendServerError(res, error);
-    return;
-  }
-
   const wallet = parsed.wallet ?? 'bank';
-  const current = wallet === 'cash' ? profile.cash_balance : profile.bank_balance;
-  const delta = Number(parsed.change_amount);
-  const balanceAfter = Number((current + delta).toFixed(2));
-  const patch =
-    wallet === 'cash' ? { cash_balance: balanceAfter } : { bank_balance: balanceAfter };
+  const result = await applyWalletDelta(req.userId, wallet, Number(parsed.change_amount), parsed.reason ?? null);
 
-  const updated = await supabaseAdmin
-    .from('profiles')
-    .update(patch)
-    .eq('id', req.userId)
-    .select('*')
-    .single();
-
-  if (updated.error) {
-    sendServerError(res, updated.error);
-    return;
-  }
-
-  let log = await supabaseAdmin
-    .from('balance_log')
-    .insert({
-      user_id: req.userId,
-      change_amount: delta,
-      reason: parsed.reason ?? null,
-      balance_after: balanceAfter,
-      wallet,
-    })
-    .select('*')
-    .single();
-
-  if (log.error) {
-    log = await supabaseAdmin
-      .from('balance_log')
-      .insert({
-        user_id: req.userId,
-        change_amount: delta,
-        reason: parsed.reason ?? null,
-        balance_after: balanceAfter,
-      })
-      .select('*')
-      .single();
-  }
-
-  if (log.error) {
-    sendServerError(res, log.error);
+  if (result.error || result.bank_balance == null || result.cash_balance == null || !result.log) {
+    sendServerError(res, result.error);
     return;
   }
 
   res.json({
-    bank_balance: wallet === 'bank' ? balanceAfter : profile.bank_balance,
-    cash_balance: wallet === 'cash' ? balanceAfter : profile.cash_balance,
-    log: mapLog(log.data as Record<string, unknown>),
+    bank_balance: result.bank_balance,
+    cash_balance: result.cash_balance,
+    log: mapLog(result.log),
   });
 }
 
