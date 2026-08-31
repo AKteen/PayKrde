@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
 import { BalanceCard } from '@/components/balance-card';
 import { GIcon } from '@/lib/tag-meta';
-import { formatInr, tzOffsetMinutes } from '@/lib/utils';
+import { formatInr, tzOffsetMinutes, cn } from '@/lib/utils';
 
 export function MoneyPage() {
   const { nonce } = useDataRefresh();
@@ -43,7 +43,7 @@ export function MoneyPage() {
   const invested = investments.reduce((sum, row) => sum + row.current_value, 0);
   const udhar = summary.udhar ?? { borrowed: 0, lent: 0 };
   const netWorth = bank + cash + invested + udhar.lent - udhar.borrowed;
-  const pay = summary.paymentMonth ?? { cash: 0, upi: 0, card: 0 };
+  const pay = summary.paymentMonth ?? { online: 0, cash: 0, upi: 0, card: 0 };
 
   return (
     <div className="space-y-4">
@@ -58,7 +58,7 @@ export function MoneyPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Kpi icon="account_balance" label="Bank / online" value={bank} hint="UPI & card wallet" />
+        <Kpi icon="account_balance" label="Bank / online" value={bank} hint="UPI & card wallet" large />
         <Kpi icon="payments" label="Cash in hand" value={cash} hint="Physical notes" />
         <Kpi icon="trending_up" label="Investments" value={invested} hint={`${investments.length} holding${investments.length === 1 ? '' : 's'}`} to="/investments" />
         <Kpi icon="south_west" label="Borrowed" value={udhar.borrowed} hint="To repay" to="/udhar" />
@@ -70,13 +70,13 @@ export function MoneyPage() {
       <section className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
         <h2 className="text-sm font-semibold">Spent this month by how you paid</h2>
         <p className="mb-3 text-[11px] text-muted-foreground">
-          Cash / UPI / Card tags on a spend tell which pocket it came from. Example: chai ₹40 tagged Cash
-          leaves cash in hand; rent ₹8,000 tagged UPI is an online/bank spend.
+          Spends default to Online and come out of bank. Tag Cash to use cash in hand.
         </p>
-        <div className="grid grid-cols-3 gap-2">
-          <PayCell label="Cash" value={pay.cash} />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <PayCell label="Online" value={pay.online} />
           <PayCell label="UPI" value={pay.upi} />
           <PayCell label="Card" value={pay.card} />
+          <PayCell label="Cash" value={pay.cash} />
         </div>
       </section>
 
@@ -93,12 +93,14 @@ function Kpi({
   value,
   hint,
   to,
+  large,
 }: {
   icon: string;
   label: string;
   value: number;
   hint?: string;
   to?: string;
+  large?: boolean;
 }) {
   const body = (
     <>
@@ -106,7 +108,7 @@ function Kpi({
         <GIcon name={icon} className="text-[14px]" />
         {label}
       </p>
-      <p className="mt-1 tabular text-base font-semibold">{formatInr(value)}</p>
+      <p className={cn('mt-1 tabular font-semibold', large ? 'text-2xl' : 'text-base')}>{formatInr(value)}</p>
       {hint ? <p className="text-[10px] text-muted-foreground">{hint}</p> : null}
     </>
   );

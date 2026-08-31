@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Vehicle } from '@kharcha/shared';
 import { VEHICLE_KIND_LABELS, VEHICLE_KINDS, VehicleSchema, zodFieldErrors, type FieldErrors } from '@kharcha/shared';
 import { ApiError, api } from '@/lib/api';
@@ -17,17 +17,36 @@ const ICONS = [
   { id: '4w', kind: '4w' as const, src: '/4w-skeleton.png', label: '4 wheeler' },
 ];
 
-export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehicle) => void; onCancel?: () => void }) {
+export function AddVehicleCard({
+  initial,
+  onAdded,
+  onCancel,
+}: {
+  initial?: Vehicle;
+  onAdded: (vehicle: Vehicle) => void;
+  onCancel?: () => void;
+}) {
   const { refresh } = useDataRefresh();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState('');
-  const [plate, setPlate] = useState('');
-  const [kind, setKind] = useState<'2w' | '4w'>('2w');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [name, setName] = useState(initial?.name ?? '');
+  const [plate, setPlate] = useState(initial?.number_plate ?? '');
+  const [kind, setKind] = useState<'2w' | '4w'>(initial?.kind ?? '2w');
+  const [imageUrl, setImageUrl] = useState<string | null>(initial?.image_url ?? null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [fields, setFields] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const editing = Boolean(initial);
+
+  useEffect(() => {
+    setName(initial?.name ?? '');
+    setPlate(initial?.number_plate ?? '');
+    setKind(initial?.kind ?? '2w');
+    setImageUrl(initial?.image_url ?? null);
+    setFields({});
+    setError(null);
+    setPickerOpen(false);
+  }, [initial?.id]);
 
   const preview = imageUrl || (kind === '4w' ? '/4w-skeleton.png' : '/2w-skeleton.png');
 
@@ -69,23 +88,30 @@ export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehic
     }
     setSaving(true);
     try {
-      const created = await api<Vehicle>('/api/vehicles', {
-        method: 'POST',
-        body: JSON.stringify(parsed.data),
-      });
-      setName('');
-      setPlate('');
-      setImageUrl(null);
-      setKind('2w');
+      const saved = initial
+        ? await api<Vehicle>(`/api/vehicles/${initial.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(parsed.data),
+          })
+        : await api<Vehicle>('/api/vehicles', {
+            method: 'POST',
+            body: JSON.stringify(parsed.data),
+          });
+      if (!initial) {
+        setName('');
+        setPlate('');
+        setImageUrl(null);
+        setKind('2w');
+      }
       setFields({});
       refresh();
-      onAdded(created);
+      onAdded(saved);
     } catch (err) {
       if (err instanceof ApiError) {
         setFields(err.fields);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Could not add vehicle');
+        setError(err instanceof Error ? err.message : editing ? 'Could not save vehicle' : 'Could not add vehicle');
       }
     } finally {
       setSaving(false);
@@ -95,7 +121,7 @@ export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehic
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add vehicle</CardTitle>
+        <CardTitle>{editing ? 'Edit vehicle' : 'Add vehicle'}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-3" noValidate>
@@ -114,7 +140,7 @@ export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehic
                 onClick={() => setPickerOpen((v) => !v)}
                 className="mt-1 w-full text-center text-[10px] font-medium text-muted-foreground hover:text-foreground"
               >
-                Choose icon
+                Choose icon or photo
               </button>
               {pickerOpen ? (
                 <div className="absolute left-0 top-[5.5rem] z-20 w-56 rounded-2xl border border-border bg-surface p-2 shadow-card">
@@ -216,7 +242,7 @@ export function AddVehicleCard({ onAdded, onCancel }: { onAdded: (vehicle: Vehic
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" disabled={saving} className="min-h-[44px] flex-1">
-              {saving ? 'Saving…' : 'Add vehicle'}
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add vehicle'}
             </Button>
             {onCancel ? (
               <Button type="button" variant="outline" className="min-h-[44px]" onClick={onCancel}>

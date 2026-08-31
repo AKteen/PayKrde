@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ENTRY_TYPES, MEAL_TAGS, TransactionSchema, TYPE_LABELS, VehicleExpenseSchema, mealTagFromHour, zodFieldErrors, type FieldErrors, type Transaction, type TransactionType, type Vehicle } from '@kharcha/shared';
+import { ENTRY_TYPES, MEAL_TAGS, TransactionSchema, TYPE_LABELS, VehicleExpenseSchema, mealTagFromHour, withDefaultPayment, zodFieldErrors, type FieldErrors, type Transaction, type TransactionType, type Vehicle } from '@kharcha/shared';
 import { ApiError, api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
 import { cn, sanitizeAmountInput, tzOffsetMinutes } from '@/lib/utils';
@@ -30,7 +30,7 @@ export function TransactionForm({
   const [note, setNote] = useState(initial?.note ?? '');
   const [type, setType] = useState<TransactionType>(initial?.type ?? defaultType);
   const [tags, setTags] = useState<string[]>(
-    initial?.tags ?? (defaultMode === 'vehicle' ? ['petrol'] : []),
+    initial?.tags ?? (defaultMode === 'vehicle' ? ['petrol'] : withDefaultPayment([])),
   );
   const [occurredAt, setOccurredAt] = useState(initial?.occurred_at ?? new Date().toISOString());
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -56,6 +56,11 @@ export function TransactionForm({
     const hour = new Date(occurredAt).getHours() + new Date(occurredAt).getMinutes() / 60;
     const meal = mealTagFromHour(hour);
     return meal ? [...next, meal] : next;
+  }
+
+  function withSpendDefaults(next: string[]) {
+    if (mode === 'vehicle') return next;
+    return withDefaultPayment(withMealTag(next));
   }
 
   function applyIssues(next: FieldErrors, message: string) {
@@ -109,7 +114,7 @@ export function TransactionForm({
       amount,
       note: note || undefined,
       type,
-      tags: withMealTag(tags),
+      tags: withSpendDefaults(tags),
       occurred_at: occurredAt,
     });
 
@@ -134,7 +139,7 @@ export function TransactionForm({
         setAmount('');
         setNote('');
         setType('spend');
-        setTags([]);
+        setTags(withDefaultPayment([]));
         setOccurredAt(new Date().toISOString());
       }
       refresh();
@@ -158,7 +163,7 @@ export function TransactionForm({
                 type="button"
                 onClick={() => {
                   setMode('personal');
-                  setTags([]);
+                  setTags(withDefaultPayment([]));
                   setFields({});
                   setError(null);
                 }}
@@ -234,14 +239,14 @@ export function TransactionForm({
       <div className="grid gap-3 md:grid-cols-2">
         <div
           className={cn(
-            'flex flex-col justify-center rounded-2xl bg-cream px-4 py-4',
+            'flex min-h-[11.5rem] flex-col justify-center rounded-[1.75rem] bg-cream px-5 py-7 md:min-h-0 md:rounded-2xl md:px-4 md:py-4',
             (fields.amount || fields.note) && 'ring-1 ring-danger',
           )}
         >
-          <span className="text-lg font-semibold tabular">
+          <span className="text-[2.15rem] font-semibold leading-none tabular md:text-lg">
             ₹{' '}
             <input
-              className="w-[calc(100%-1.5rem)] bg-transparent text-lg font-semibold outline-none"
+              className="w-[calc(100%-2.25rem)] bg-transparent text-[2.15rem] font-semibold leading-none outline-none md:w-[calc(100%-1.5rem)] md:text-lg"
               inputMode="decimal"
               placeholder="0"
               value={amount}
@@ -252,11 +257,11 @@ export function TransactionForm({
               }}
             />
           </span>
-          <span className="text-[11px] text-muted-foreground">Enter amount</span>
+          <span className="mt-2 text-sm text-muted-foreground md:mt-0 md:text-[11px]">Enter amount</span>
           <FieldError message={fields.amount} />
-          <span className="mt-4 text-[11px] text-muted-foreground">What was this for?</span>
+          <span className="mt-4 text-sm text-muted-foreground md:text-[11px]">What was this for?</span>
           <input
-            className="mt-0.5 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="mt-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:mt-0.5 md:text-sm"
             maxLength={280}
             placeholder={mode === 'vehicle' ? 'e.g. Full tank, service' : 'e.g. Dinner, Grocery, Petrol'}
             value={note}

@@ -77,12 +77,12 @@ export function BalanceCard({ bank, cash }: { bank: number; cash?: number }) {
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-[11px] text-muted-foreground">Bank / online</p>
-            <p className="tabular text-lg font-medium">{formatInr(bank)}</p>
+            <p className="text-xs text-muted-foreground">Bank / online</p>
+            <p className="mt-1 tabular text-2xl font-semibold md:text-xl">{formatInr(bank)}</p>
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground">Cash in hand</p>
-            <p className="tabular text-lg font-medium">{formatInr(cashValue)}</p>
+            <p className="text-xs text-muted-foreground">Cash in hand</p>
+            <p className="mt-1 tabular text-2xl font-semibold md:text-xl">{formatInr(cashValue)}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">

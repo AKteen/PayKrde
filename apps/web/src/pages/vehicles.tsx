@@ -34,6 +34,7 @@ export function VehiclesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Vehicle | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +103,7 @@ export function VehiclesPage() {
   const maintenance = filtered.filter((r) => r.tags.includes('maintenance')).reduce((s, r) => s + r.amount, 0);
   const others = filtered.filter((r) => r.tags.includes('accessories')).reduce((s, r) => s + r.amount, 0);
   const total = fuel + maintenance + others || filtered.reduce((s, r) => s + r.amount, 0);
-  const showAddCard = loaded && (vehicles.length === 0 || adding);
+  const showAddCard = loaded && (vehicles.length === 0 || adding || Boolean(editing));
 
   async function onDeleteVehicle(id: string) {
     if (!window.confirm('Delete this vehicle and its expenses?')) return;
@@ -128,12 +129,12 @@ export function VehiclesPage() {
                 </div>
               </div>
               {loaded && vehicles.length > 0 ? (
-                adding ? (
-                  <Button variant="outline" size="sm" onClick={() => setAdding(false)}>
+                adding || editing ? (
+                  <Button variant="outline" size="sm" onClick={() => { setAdding(false); setEditing(null); }}>
                     Cancel
                   </Button>
                 ) : (
-                  <Button size="sm" className="min-h-[40px]" onClick={() => setAdding(true)}>
+                  <Button size="sm" className="min-h-[40px]" onClick={() => { setAdding(true); setEditing(null); }}>
                     <Plus className="mr-1 h-4 w-4" /> Add vehicle
                   </Button>
                 )
@@ -253,11 +254,13 @@ export function VehiclesPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {showAddCard ? (
           <AddVehicleCard
-            onAdded={(created) => {
-              setSelectedId(created.id);
+            initial={editing ?? undefined}
+            onAdded={(saved) => {
+              setSelectedId(saved.id);
               setAdding(false);
+              setEditing(null);
             }}
-            onCancel={vehicles.length > 0 ? () => setAdding(false) : undefined}
+            onCancel={vehicles.length > 0 ? () => { setAdding(false); setEditing(null); } : undefined}
           />
         ) : null}
 
@@ -271,16 +274,35 @@ export function VehiclesPage() {
             </div>
             {showForm ? <TransactionForm defaultMode="vehicle" onSaved={() => setShowForm(false)} /> : null}
             {vehicles.map((v) => (
-              <div key={v.id} className="mt-3 flex items-center justify-between rounded-2xl border border-border px-3 py-2">
-                <span className="text-sm">
-                  {v.name}
-                  {v.number_plate ? (
-                    <span className="ml-2 font-mono text-xs text-muted-foreground">{v.number_plate}</span>
-                  ) : null}
-                </span>
-                <Button variant="ghost" size="sm" onClick={() => onDeleteVehicle(v.id)}>
-                  Delete
-                </Button>
+              <div key={v.id} className="mt-3 flex items-center justify-between gap-2 rounded-2xl border border-border px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(v.id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
+                  <img src={vehicleImageSrc(v)} alt="" className="h-10 w-14 rounded-md bg-muted object-contain" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{v.name}</span>
+                    {v.number_plate ? (
+                      <span className="block font-mono text-xs text-muted-foreground">{v.number_plate}</span>
+                    ) : null}
+                  </span>
+                </button>
+                <div className="flex shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditing(v);
+                      setAdding(false);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => onDeleteVehicle(v.id)}>
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

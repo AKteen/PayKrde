@@ -373,7 +373,7 @@ export function TransactionFilters({
         <AccordionRow
           icon="credit_card"
           title="Payment mode"
-          subtitle="Cash, UPI, Card"
+          subtitle="Online, Cash, UPI, Card"
           open={open === 'payment'}
           onToggle={() => setOpen(open === 'payment' ? null : 'payment')}
         >

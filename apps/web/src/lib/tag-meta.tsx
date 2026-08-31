@@ -25,6 +25,7 @@ export const TAG_META: Record<
   stationary: { icon: 'edit_note', fg: '#4338CA', bg: '#E0E7FF', border: '#A5B4FC' },
   maintenance: { icon: 'build', fg: '#334155', bg: '#F1F5F9', border: '#CBD5E1' },
   accessories: { icon: 'directions_car', fg: '#7C3AED', bg: '#F3E8FF', border: '#D8B4FE' },
+  online: { icon: 'account_balance', fg: '#1D4ED8', bg: '#DBEAFE', border: '#93C5FD' },
   cash: { icon: 'payments', fg: '#166534', bg: '#DCFCE7', border: '#86EFAC' },
   upi: { icon: 'qr_code_2', fg: '#1D4ED8', bg: '#DBEAFE', border: '#93C5FD' },
   card: { icon: 'credit_card', fg: '#6D28D9', bg: '#F3E8FF', border: '#D8B4FE' },

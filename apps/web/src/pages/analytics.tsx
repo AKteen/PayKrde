@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MEAL_TAGS, TAG_LABELS, type TransactionSummary } from '@kharcha/shared';
+import { CORE_MEALS, MEAL_TAGS, TAG_LABELS, type TransactionSummary } from '@kharcha/shared';
 import { api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
 import { tzOffsetMinutes } from '@/lib/utils';
@@ -48,8 +48,9 @@ export function AnalyticsPage() {
   const headlineSpend = period === 'month' ? spent.month : yearSpend;
   const catRows = period === 'month' ? summary.byCategoryMonth : summary.byCategoryYear;
   const foodTotal =
-    (catRows?.find((r) => r.tag === 'food')?.total ?? 0) +
-    MEAL_TAGS.reduce((s, tag) => s + (catRows?.find((r) => r.tag === tag)?.total ?? 0), 0);
+    period === 'month'
+      ? (summary.food?.month ?? 0)
+      : CORE_MEALS.reduce((s, tag) => s + (catRows?.find((r) => r.tag === tag)?.total ?? 0), 0);
   const petrolTotal = categories.find((c) => c.tag === 'petrol')?.total ?? 0;
 
   return (
@@ -89,7 +90,7 @@ export function AnalyticsPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <HeroKpi icon="local_gas_station" label="Petrol" value={petrolTotal} hint={period === 'month' ? 'This month' : 'This year'} />
-        <HeroKpi icon="restaurant" label="Food & meals" value={foodTotal} hint="Food + meal tags" />
+        <HeroKpi icon="restaurant" label="Food" value={foodTotal} hint="Breakfast, lunch, dinner" />
         <HeroKpi icon="apartment" label="Rent" value={categories.find((c) => c.tag === 'rent')?.total ?? 0} hint={period === 'month' ? 'This month' : 'This year'} />
         <HeroKpi icon="south_west" label="Borrowed" value={udhar.borrowed} hint="All time" />
         <HeroKpi icon="north_east" label="Lent" value={udhar.lent} hint="All time" />
@@ -141,7 +142,7 @@ function HeroKpi({
         <GIcon name={icon} className="text-[14px]" />
         {label}
       </p>
-      <p className="mt-2 tabular text-lg font-semibold">{formatInr(value)}</p>
+      <p className="mt-2 tabular text-2xl font-semibold">{formatInr(value)}</p>
       {hint ? <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p> : null}
     </div>
   );

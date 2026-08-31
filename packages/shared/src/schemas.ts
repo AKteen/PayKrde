@@ -232,7 +232,7 @@ export const TransactionListQuerySchema = z
     tag: optionalQueryString,
     payment: z.preprocess(
       (v) => (v === '' || v == null ? undefined : v),
-      z.enum(['cash', 'upi', 'card']).optional(),
+      z.enum(['online', 'cash', 'upi', 'card']).optional(),
     ),
     sort: z.enum(['newest', 'oldest', 'amount']).default('newest'),
     minAmount: optionalMoney,

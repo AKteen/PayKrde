@@ -7,6 +7,7 @@ import {
   TransactionUpdateSchema,
   isFoodTag,
   mealTagFromHour,
+  withDefaultPayment,
   type MealTag,
   type MealTotals,
   type TagTotal,
@@ -24,6 +25,7 @@ import {
   toLocalDateKey,
   toNumber,
 } from '../lib/helpers.js';
+import { applyWalletMoves, netWalletMoves, spendWalletDelta } from '../lib/wallet.js';
 
 function mapRow(row: Record<string, unknown>): Transaction {
   return {
@@ -137,7 +139,7 @@ export async function summary(req: Request, res: Response) {
   const catMonth = new Map<string, number>();
   const catYear = new Map<string, number>();
   const food = { today: 0, week: 0, month: 0 };
-  const paymentMonth = { cash: 0, upi: 0, card: 0 };
+  const paymentMonth = { online: 0, cash: 0, upi: 0, card: 0 };
   const mealsLoggedToday = new Set<MealTag>();
   const mealsByDay = new Map<string, Set<MealTag>>();
 
@@ -168,8 +170,7 @@ export async function summary(req: Request, res: Response) {
     if (inToday) {
       today += amount;
       const tagged = MEAL_TAGS.find((tag) => tags.includes(tag));
-      const meal = tagged ?? mealTagFromHour(localHour(occurred, tzOffsetMinutes));
-      if (meal) meals[meal] += amount;
+      if (tagged) meals[tagged] += amount;
       for (const meal of MEAL_TAGS) {
         if (tags.includes(meal)) mealsLoggedToday.add(meal);
       }
@@ -272,7 +273,7 @@ export async function create(req: Request, res: Response) {
   if (!parsed) return;
 
   const tzOffsetMinutes = parseTzOffset(req.body?.tzOffsetMinutes);
-  const tags = [...(parsed.tags ?? [])];
+  const tags = withDefaultPayment([...(parsed.tags ?? [])]);
   const hasMeal = MEAL_TAGS.some((tag) => tags.includes(tag));
   if (!hasMeal && parsed.type === 'spend') {
     const meal = mealTagFromHour(localHour(parsed.occurred_at, tzOffsetMinutes));
@@ -296,6 +297,17 @@ export async function create(req: Request, res: Response) {
     sendServerError(res, error);
     return;
   }
+
+  const effect = spendWalletDelta(parsed.type, parsed.amount, tags);
+  if (effect) {
+    const walletRes = await applyWalletMoves(req.userId, [effect], parsed.note ?? 'Spend');
+    if (walletRes.error) {
+      await supabaseAdmin.from('transactions').delete().eq('id', (data as { id: string }).id).eq('user_id', req.userId);
+      sendServerError(res, walletRes.error);
+      return;
+    }
+  }
+
   res.status(201).json(mapRow(data as Record<string, unknown>));
 }
 
@@ -303,11 +315,32 @@ export async function update(req: Request, res: Response) {
   const parsed = parseBody(res, TransactionUpdateSchema, req.body);
   if (!parsed) return;
 
+  const existing = await supabaseAdmin
+    .from('transactions')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .maybeSingle();
+
+  if (existing.error) {
+    sendServerError(res, existing.error);
+    return;
+  }
+  if (!existing.data) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const prev = mapRow(existing.data as Record<string, unknown>);
+  const nextType = parsed.type ?? prev.type;
+  const nextAmount = parsed.amount ?? prev.amount;
+  const nextTags = parsed.tags !== undefined ? withDefaultPayment(parsed.tags) : prev.tags;
+
   const patch: Record<string, unknown> = {};
   if (parsed.amount !== undefined) patch.amount = parsed.amount;
   if (parsed.note !== undefined) patch.note = parsed.note ?? null;
   if (parsed.type !== undefined) patch.type = parsed.type;
-  if (parsed.tags !== undefined) patch.tags = parsed.tags;
+  if (parsed.tags !== undefined) patch.tags = nextTags;
   if (parsed.occurred_at !== undefined) patch.occurred_at = parsed.occurred_at;
 
   const { data, error } = await supabaseAdmin
@@ -326,10 +359,51 @@ export async function update(req: Request, res: Response) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
+
+  const moves = netWalletMoves(
+    spendWalletDelta(prev.type, prev.amount, prev.tags),
+    spendWalletDelta(nextType, nextAmount, nextTags),
+  );
+  if (moves.length) {
+    const walletRes = await applyWalletMoves(req.userId, moves, parsed.note ?? prev.note ?? 'Spend');
+    if (walletRes.error) {
+      await supabaseAdmin
+        .from('transactions')
+        .update({
+          amount: prev.amount,
+          note: prev.note,
+          type: prev.type,
+          tags: prev.tags,
+          occurred_at: prev.occurred_at,
+        })
+        .eq('id', prev.id)
+        .eq('user_id', req.userId);
+      sendServerError(res, walletRes.error);
+      return;
+    }
+  }
+
   res.json(mapRow(data as Record<string, unknown>));
 }
 
 export async function remove(req: Request, res: Response) {
+  const existing = await supabaseAdmin
+    .from('transactions')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .maybeSingle();
+
+  if (existing.error) {
+    sendServerError(res, existing.error);
+    return;
+  }
+  if (!existing.data) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const prev = mapRow(existing.data as Record<string, unknown>);
   const { data, error } = await supabaseAdmin
     .from('transactions')
     .delete()
@@ -346,5 +420,25 @@ export async function remove(req: Request, res: Response) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
+
+  const moves = netWalletMoves(spendWalletDelta(prev.type, prev.amount, prev.tags), null);
+  if (moves.length) {
+    const walletRes = await applyWalletMoves(req.userId, moves, prev.note ?? 'Spend deleted');
+    if (walletRes.error) {
+      await supabaseAdmin.from('transactions').insert({
+        id: prev.id,
+        user_id: req.userId,
+        amount: prev.amount,
+        note: prev.note,
+        type: prev.type,
+        tags: prev.tags,
+        occurred_at: prev.occurred_at,
+        created_at: prev.created_at,
+      });
+      sendServerError(res, walletRes.error);
+      return;
+    }
+  }
+
   res.status(204).send();
 }

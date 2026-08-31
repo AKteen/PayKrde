@@ -130,6 +130,6 @@ export type TransactionSummary = {
   dailyAvg: number;
   daysElapsed: number;
   food: PeriodTotals & { dailyAvg: number };
-  paymentMonth: Record<'cash' | 'upi' | 'card', number>;
+  paymentMonth: Record<'online' | 'cash' | 'upi' | 'card', number>;
   lastPetrolAt: string | null;
 };

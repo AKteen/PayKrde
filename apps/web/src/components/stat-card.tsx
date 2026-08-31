@@ -33,7 +33,7 @@ export function StatCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
-          <p className={cn('mt-2 tabular text-lg font-semibold', valueClass[tone])}>{formatInr(value)}</p>
+          <p className={cn('mt-2 tabular text-2xl font-semibold', valueClass[tone])}>{formatInr(value)}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
         </div>
         <span className={cn('flex h-10 w-10 items-center justify-center rounded-2xl', tones[tone])}>
