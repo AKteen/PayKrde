@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { useDataRefresh } from '@/lib/data-refresh';
 import { MealKpi } from '@/components/meal-kpi';
 import { GIcon, TAG_META } from '@/lib/tag-meta';
-import { formatInr, tzOffsetMinutes } from '@/lib/utils';
+import { formatInr, tzOffsetMinutes, cn } from '@/lib/utils';
 
 export function DietPage() {
   const { nonce } = useDataRefresh();
@@ -74,8 +74,8 @@ export function DietPage() {
             return (
               <div
                 key={meal}
-                className="rounded-2xl border px-2 py-3 text-center"
-                style={{ background: ok ? meta.bg : '#F3F1EC', borderColor: ok ? meta.border : '#EDEAE3' }}
+                className={cn('rounded-2xl border px-2 py-3 text-center', !ok && 'border-border bg-muted')}
+                style={ok ? { background: meta.bg, borderColor: meta.border } : undefined}
               >
                 <GIcon name={meta.icon} className="text-[18px]" />
                 <p className="mt-1 text-xs font-medium">{TAG_LABELS[meal]}</p>

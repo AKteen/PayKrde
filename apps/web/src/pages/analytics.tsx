@@ -102,7 +102,7 @@ export function AnalyticsPage() {
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">By category</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {categories.map((row) => {
-            const meta = TAG_META[row.tag] ?? { icon: 'sell', fg: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB' };
+            const meta = TAG_META[row.tag] ?? { icon: 'sell', fg: '#A1A1AA', bg: '#27272A', border: '#3F3F46' };
             return (
               <div
                 key={row.tag}

@@ -40,7 +40,7 @@ export function MealKpi({ today, meals }: { today: number; meals: MealTotals }) 
                 {formatInr(amount)}
               </p>
               <p className="text-[10px] text-muted-foreground">{WINDOWS[meal]}</p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/70">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/35">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${Math.min(100, (amount / max) * 100)}%`, background: meta.fg }}

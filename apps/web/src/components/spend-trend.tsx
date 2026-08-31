@@ -29,11 +29,17 @@ export function SpendTrend({ calendar }: { calendar: DayTotal[] }) {
       <CardContent className="h-36">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
             <Tooltip
-              cursor={{ fill: '#FFF6D6' }}
+              cursor={{ fill: '#2A2414' }}
               formatter={(value: number) => formatInr(value)}
-              contentStyle={{ border: '1px solid #EDEAE3', borderRadius: 12, fontSize: 12 }}
+              contentStyle={{
+                background: '#171A21',
+                color: '#F4F4F5',
+                border: '1px solid #2A2F3A',
+                borderRadius: 12,
+                fontSize: 12,
+              }}
             />
             <Bar dataKey="total" fill="#F5C518" radius={[4, 4, 0, 0]} />
           </BarChart>
