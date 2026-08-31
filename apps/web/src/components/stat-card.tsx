@@ -17,9 +17,9 @@ export function StatCard({
 }) {
   const tones = {
     gold: 'bg-cream text-gold',
-    danger: 'bg-red-50 text-danger',
-    success: 'bg-green-50 text-success',
-    info: 'bg-blue-50 text-info',
+    danger: 'bg-danger/15 text-danger',
+    success: 'bg-success/15 text-success',
+    info: 'bg-info/15 text-info',
   };
   const valueClass = {
     gold: 'text-foreground',

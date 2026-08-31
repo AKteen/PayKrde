@@ -115,7 +115,7 @@ export function VehiclesPage() {
   return (
     <div className="space-y-5">
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      <section className="relative overflow-hidden rounded-[28px] bg-[#FFF8E7] p-6 shadow-soft">
+      <section className="relative overflow-hidden rounded-[28px] bg-cream p-6 shadow-soft">
         <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_280px]">
           <div>
             <div className="flex items-start justify-between gap-3">
@@ -366,10 +366,10 @@ function KpiTile({
   detail: string;
 }) {
   const tones = {
-    green: { bg: '#ECFDF5', fg: '#047857', icon: '#10B981' },
-    blue: { bg: '#EFF6FF', fg: '#1D4ED8', icon: '#3B82F6' },
-    purple: { bg: '#F5F3FF', fg: '#6D28D9', icon: '#8B5CF6' },
-    yellow: { bg: '#FFFBEB', fg: '#B45309', icon: '#F5C518' },
+    green: { bg: '#10261C', fg: '#6EE7B7', icon: '#10B981' },
+    blue: { bg: '#152238', fg: '#93C5FD', icon: '#3B82F6' },
+    purple: { bg: '#22183A', fg: '#C4B5FD', icon: '#8B5CF6' },
+    yellow: { bg: '#2A2414', fg: '#FCD34D', icon: '#F5C518' },
   }[tone];
 
   return (

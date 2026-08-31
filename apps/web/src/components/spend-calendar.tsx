@@ -33,10 +33,10 @@ function buildWeeks(year: number) {
 }
 
 function cellColor(value: number, max: number) {
-  if (value <= 0) return 'bg-[#F3F1EC]';
+  if (value <= 0) return 'bg-muted';
   const t = max <= 0 ? 0 : Math.min(1, value / max);
-  if (t < 0.25) return 'bg-[#FFF1B8]';
-  if (t < 0.5) return 'bg-[#F8D56B]';
+  if (t < 0.25) return 'bg-[#3F3414]';
+  if (t < 0.5) return 'bg-[#6B5410]';
   if (t < 0.75) return 'bg-[#F5C518]';
   return 'bg-[#E0A800]';
 }
@@ -125,9 +125,9 @@ export function SpendCalendar({ calendar, year }: { calendar: DayTotal[]; year: 
           </div>
           <div className="mt-3 flex items-center gap-1 text-[10px] text-muted-foreground">
             <span>Less</span>
-            <span className="h-[11px] w-[11px] rounded-[2px] bg-[#F3F1EC]" />
-            <span className="h-[11px] w-[11px] rounded-[2px] bg-[#FFF1B8]" />
-            <span className="h-[11px] w-[11px] rounded-[2px] bg-[#F8D56B]" />
+            <span className="h-[11px] w-[11px] rounded-[2px] bg-muted" />
+            <span className="h-[11px] w-[11px] rounded-[2px] bg-[#3F3414]" />
+            <span className="h-[11px] w-[11px] rounded-[2px] bg-[#6B5410]" />
             <span className="h-[11px] w-[11px] rounded-[2px] bg-[#F5C518]" />
             <span className="h-[11px] w-[11px] rounded-[2px] bg-[#E0A800]" />
             <span>More</span>

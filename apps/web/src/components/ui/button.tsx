@@ -11,8 +11,8 @@ const buttonVariants = cva(
         default: 'bg-primary text-primary-foreground hover:bg-[#e8b80f]',
         outline: 'border border-border bg-surface hover:bg-muted',
         ghost: 'hover:bg-muted',
-        danger: 'bg-danger text-white hover:bg-[#b91c1c]',
-        success: 'bg-success text-white hover:bg-[#15803d]',
+        danger: 'bg-danger text-background hover:bg-[#ef4444]',
+        success: 'bg-success text-background hover:bg-[#10b981]',
       },
       size: {
         default: 'h-10 px-4 py-2',

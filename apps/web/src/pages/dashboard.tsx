@@ -76,7 +76,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <section className="relative overflow-hidden rounded-2xl bg-[#FFF6D6] px-4 py-4 md:px-6 md:py-6 md:min-h-[150px]">
+      <section className="relative overflow-hidden rounded-2xl bg-cream px-4 py-4 md:px-6 md:py-6 md:min-h-[150px]">
         <div className="relative z-10 max-w-xl">
           <h1 className="text-lg font-semibold tracking-tight md:text-2xl">
             {greeting()}, {name}! 👋
