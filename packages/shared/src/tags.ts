@@ -108,8 +108,9 @@ export const TAG_LABELS: Record<string, string> = {
 export const CORE_MEALS = ['breakfast', 'lunch', 'dinner'] as const;
 export type CoreMeal = (typeof CORE_MEALS)[number];
 
+/** Food KPI counts only breakfast / lunch / dinner tags — not snack or the generic food category. */
 export function isFoodTag(tag: string): boolean {
-  return tag === 'food' || (MEAL_TAGS as readonly string[]).includes(tag);
+  return (CORE_MEALS as readonly string[]).includes(tag);
 }
 
 export function mealTagFromHour(hour: number): MealTag | null {

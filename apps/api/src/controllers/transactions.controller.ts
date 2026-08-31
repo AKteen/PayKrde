@@ -170,8 +170,7 @@ export async function summary(req: Request, res: Response) {
     if (inToday) {
       today += amount;
       const tagged = MEAL_TAGS.find((tag) => tags.includes(tag));
-      const meal = tagged ?? mealTagFromHour(localHour(occurred, tzOffsetMinutes));
-      if (meal) meals[meal] += amount;
+      if (tagged) meals[tagged] += amount;
       for (const meal of MEAL_TAGS) {
         if (tags.includes(meal)) mealsLoggedToday.add(meal);
       }
